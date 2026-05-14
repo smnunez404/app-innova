@@ -1,0 +1,51 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "User profile and statistics",
+      "type": "object",
+      "properties": {
+        "email": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "streakCount": { "type": "integer" }
+      },
+      "required": ["email", "createdAt"]
+    },
+    "ActivityLog": {
+      "title": "Activity Log",
+      "description": "A record of a micro-movement activity",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "loggedAt": { "type": "string", "format": "date-time" },
+        "moodBefore": { "type": "integer", "description": "1-5 scale" },
+        "moodAfter": { "type": "integer", "description": "1-5 scale" }
+      },
+      "required": ["userId", "loggedAt"]
+    },
+    "MicroTip": {
+      "title": "Micro Tip",
+      "description": "A suggestion for a 1-minute movement",
+      "type": "object",
+      "properties": {
+        "text": { "type": "string" },
+        "category": { "type": "string", "enum": ["Oficina", "Casa", "Espera"] }
+      },
+      "required": ["text", "category"]
+    }
+  },
+  "firestore": {
+    "users/{userId}": {
+      "schema": "User",
+      "description": "User documents"
+    },
+    "activity_logs/{logId}": {
+      "schema": "ActivityLog",
+      "description": "Logs of user movements"
+    },
+    "micro_tips/{tipId}": {
+      "schema": "MicroTip",
+      "description": "Predefined suggestions for movements"
+    }
+  }
+}

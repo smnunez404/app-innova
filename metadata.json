@@ -1,0 +1,6 @@
+{
+  "name": "UnMinuto",
+  "description": "Una app minimalista para validar el hábito del movimiento diario con micro-acciones de un minuto, eliminando la culpa y la fricción.",
+  "requestFramePermissions": [],
+  "majorCapabilities": []
+}

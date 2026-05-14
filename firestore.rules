@@ -1,0 +1,76 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Global safety net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Helper functions
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    // --- Entity Validations ---
+
+    function isValidUser(data) {
+      return data.email is string && data.email.size() <= 100 &&
+             data.createdAt is timestamp &&
+             data.streakCount is int && data.streakCount >= 0 &&
+             data.keys().hasAll(['email', 'createdAt', 'streakCount']) &&
+             data.keys().size() == 3;
+    }
+
+    function isValidActivityLog(data) {
+      return data.userId == request.auth.uid &&
+             data.loggedAt == request.time &&
+             (data.get('moodBefore', null) == null || (data.moodBefore is int && data.moodBefore >= 1 && data.moodBefore <= 5)) &&
+             (data.get('moodAfter', null) == null || (data.moodAfter is int && data.moodAfter >= 1 && data.moodAfter <= 5)) &&
+             data.keys().hasAll(['userId', 'loggedAt']) &&
+             data.keys().size() <= 4;
+    }
+
+    // --- Collection Rules ---
+
+    match /users/{userId} {
+      allow get: if isOwner(userId) && isValidId(userId);
+      allow create: if isOwner(userId) && isValidId(userId) && isValidUser(incoming()) && incoming().streakCount == 0 && incoming().createdAt == request.time;
+      allow update: if isOwner(userId) && isValidId(userId) && isValidUser(incoming()) && (
+        // Only allow updating streakCount through proper increment logic (conceptual, simplified for MVP)
+        // In a real app, this might be restricted to cloud functions or strictly validated increments
+        incoming().diff(existing()).affectedKeys().hasOnly(['streakCount']) && incoming().email == existing().email && incoming().createdAt == existing().createdAt
+      );
+    }
+
+    match /activity_logs/{logId} {
+      allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow get: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow create: if isSignedIn() && isValidId(logId) && isValidActivityLog(incoming());
+      // No updates for MVP as per business rules
+      allow update: if false;
+      allow delete: if false;
+    }
+
+    match /micro_tips/{tipId} {
+      allow get: if true;
+      allow list: if true;
+      allow write: if false; // System-seeded only
+    }
+  }
+}
